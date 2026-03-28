@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import type { PredictionOutput } from '@/lib/prediction';
-import { Package, Users, TrendingDown } from 'lucide-react';
+import { Package, Users, TrendingDown, Scale } from 'lucide-react';
 
 interface Props {
   output: PredictionOutput | null;
@@ -36,43 +36,68 @@ export function ResultsPanel({ output }: Props) {
         </Card>
         <Card className="border-0 shadow-md bg-accent/10">
           <CardContent className="p-4 text-center">
-            <TrendingDown className="h-5 w-5 mx-auto text-accent mb-1" />
+            <TrendingDown className="h-5 w-5 mx-auto mb-1" style={{ color: 'hsl(36, 80%, 45%)' }} />
             <p className="text-2xl font-bold" style={{ color: 'hsl(36, 80%, 45%)' }}>{(output.attendanceRate * 100).toFixed(0)}%</p>
             <p className="text-xs text-muted-foreground">Attendance Rate</p>
           </CardContent>
         </Card>
         <Card className="border-0 shadow-md bg-primary/5">
           <CardContent className="p-4 text-center">
-            <Package className="h-5 w-5 mx-auto text-primary mb-1" />
+            <Scale className="h-5 w-5 mx-auto text-primary mb-1" />
             <p className="text-2xl font-bold text-primary">{totalKg} kg</p>
             <p className="text-xs text-muted-foreground">Total Materials</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Detailed Results */}
+      {/* Aggregated Totals */}
+      <Card className="shadow-lg border-0 bg-card">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Scale className="h-5 w-5 text-primary" />
+            Total Raw Materials Required
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-2">
+            {materials.map(([name, qty]) => (
+              <div
+                key={name}
+                className="flex items-center justify-between p-3 rounded-lg bg-primary/5 border border-primary/10"
+              >
+                <span className="font-medium text-sm truncate mr-2">{name}</span>
+                <Badge className="text-sm font-bold px-3 py-1 bg-primary text-primary-foreground shrink-0">
+                  {qty} kg
+                </Badge>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Detailed Dish-wise Breakdown */}
       <Card className="shadow-lg border-0 bg-card">
         <CardHeader className="pb-3">
           <CardTitle className="text-lg flex items-center gap-2">
             <Package className="h-5 w-5 text-primary" />
-            Raw Material Breakdown
+            Dish-wise Breakdown
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
+          <div className="space-y-2 max-h-[350px] overflow-y-auto pr-1">
             {output.results.map((r, i) => (
               <div
                 key={i}
-                className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
+                className="flex items-center justify-between p-2.5 rounded-lg bg-muted/50"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 rounded-full bg-primary" />
+                  <div className="w-2 h-2 rounded-full bg-primary shrink-0" />
                   <div>
                     <p className="font-semibold text-sm">{r.material}</p>
                     <p className="text-xs text-muted-foreground">for {r.dish}</p>
                   </div>
                 </div>
-                <Badge variant="secondary" className="text-base font-bold px-3 py-1 bg-primary text-primary-foreground">
+                <Badge variant="outline" className="text-sm font-bold px-2 py-0.5 shrink-0">
                   {r.quantity} kg
                 </Badge>
               </div>

@@ -5,23 +5,48 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { MENU_ITEMS, type MealType, type MenuItem } from '@/lib/prediction';
-import { Users, Utensils, Calculator, RotateCcw } from 'lucide-react';
+import { getDishesForMeal, WEEKLY_MENU, type MealType } from '@/lib/prediction';
+import { Users, Utensils, Calculator, RotateCcw, CalendarDays } from 'lucide-react';
 
 interface Props {
-  onPredict: (students: number, meal: MealType, items: MenuItem[]) => void;
+  onPredict: (students: number, meal: MealType, items: string[]) => void;
   onReset: () => void;
 }
+
+const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 export function PredictionForm({ onPredict, onReset }: Props) {
   const [students, setStudents] = useState<string>('300');
   const [meal, setMeal] = useState<MealType>('Lunch');
-  const [selected, setSelected] = useState<MenuItem[]>(['Rice', 'Dal', 'Roti']);
+  const [selected, setSelected] = useState<string[]>([]);
+  const [selectedDay, setSelectedDay] = useState<string>('');
 
-  const toggle = (item: MenuItem) => {
+  const availableDishes = getDishesForMeal(meal);
+
+  const toggle = (item: string) => {
     setSelected(prev =>
       prev.includes(item) ? prev.filter(i => i !== item) : [...prev, item]
     );
+  };
+
+  const handleMealChange = (v: MealType) => {
+    setMeal(v);
+    setSelected([]);
+    setSelectedDay('');
+  };
+
+  const handleDaySelect = (day: string) => {
+    if (day === selectedDay) {
+      setSelectedDay('');
+      setSelected([]);
+      return;
+    }
+    setSelectedDay(day);
+    const dayMenu = WEEKLY_MENU.find(d => d.day === day);
+    if (dayMenu) {
+      const dishes = dayMenu[meal] || [];
+      setSelected(dishes.filter(d => availableDishes.includes(d)));
+    }
   };
 
   const handlePredict = () => {
@@ -35,6 +60,7 @@ export function PredictionForm({ onPredict, onReset }: Props) {
     setStudents('300');
     setMeal('Lunch');
     setSelected([]);
+    setSelectedDay('');
     onReset();
   };
 
@@ -46,7 +72,7 @@ export function PredictionForm({ onPredict, onReset }: Props) {
           Meal Configuration
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-5">
         {/* Students */}
         <div className="space-y-2">
           <Label className="flex items-center gap-2 font-medium">
@@ -66,26 +92,55 @@ export function PredictionForm({ onPredict, onReset }: Props) {
         {/* Meal Type */}
         <div className="space-y-2">
           <Label className="font-medium">Meal Type</Label>
-          <Select value={meal} onValueChange={v => setMeal(v as MealType)}>
+          <Select value={meal} onValueChange={v => handleMealChange(v as MealType)}>
             <SelectTrigger className="h-12 text-lg">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="Breakfast">🌅 Breakfast</SelectItem>
               <SelectItem value="Lunch">☀️ Lunch</SelectItem>
+              <SelectItem value="Evening Snacks">🍵 Evening Snacks</SelectItem>
               <SelectItem value="Dinner">🌙 Dinner</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
+        {/* Quick Day Select */}
+        <div className="space-y-2">
+          <Label className="flex items-center gap-2 font-medium">
+            <CalendarDays className="h-4 w-4 text-muted-foreground" />
+            Quick Select by Day (JNU Menu)
+          </Label>
+          <div className="flex flex-wrap gap-2">
+            {DAYS.map(day => (
+              <button
+                key={day}
+                onClick={() => handleDaySelect(day)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  selectedDay === day
+                    ? 'bg-primary text-primary-foreground shadow-md'
+                    : 'bg-muted text-muted-foreground hover:bg-primary/10'
+                }`}
+              >
+                {day.slice(0, 3)}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Menu Items */}
-        <div className="space-y-3">
-          <Label className="font-medium">Menu Items</Label>
-          <div className="grid grid-cols-2 gap-3">
-            {MENU_ITEMS.map(item => (
+        <div className="space-y-2">
+          <Label className="font-medium">
+            Menu Items
+            <span className="text-xs text-muted-foreground ml-2">
+              ({selected.length} selected)
+            </span>
+          </Label>
+          <div className="max-h-[280px] overflow-y-auto pr-1 space-y-2">
+            {availableDishes.map(item => (
               <label
                 key={item}
-                className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                className={`flex items-center gap-3 p-2.5 rounded-lg border-2 cursor-pointer transition-all ${
                   selected.includes(item)
                     ? 'border-primary bg-primary/5'
                     : 'border-border hover:border-primary/40'
