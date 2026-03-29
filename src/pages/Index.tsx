@@ -140,8 +140,8 @@ function ResultsPanel({ output }: { output: PredictionOutput | null }) {
         <Card className="border-0 shadow-md bg-primary/5">
           <CardContent className="p-4 text-center">
             <Scale className="h-5 w-5 mx-auto text-primary mb-1" />
-            <p className="text-2xl font-bold text-primary">{totalKg} kg</p>
-            <p className="text-xs text-muted-foreground">Total Materials</p>
+            <p className="text-2xl font-bold text-primary">{materials.length}</p>
+            <p className="text-xs text-muted-foreground">Material Types</p>
           </CardContent>
         </Card>
       </div>
