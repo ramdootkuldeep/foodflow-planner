@@ -118,7 +118,7 @@ function ResultsPanel({ output }: { output: PredictionOutput | null }) {
     );
   }
   const materials = Object.entries(output.totalMaterials);
-  const totalKg = materials.reduce((s, [, v]) => s + v, 0).toFixed(1);
+  const totalKg = materials.reduce((s, [, v]) => s + v.qty, 0).toFixed(1);
 
   return (
     <div className="space-y-4">
@@ -140,8 +140,8 @@ function ResultsPanel({ output }: { output: PredictionOutput | null }) {
         <Card className="border-0 shadow-md bg-primary/5">
           <CardContent className="p-4 text-center">
             <Scale className="h-5 w-5 mx-auto text-primary mb-1" />
-            <p className="text-2xl font-bold text-primary">{totalKg} kg</p>
-            <p className="text-xs text-muted-foreground">Total Materials</p>
+            <p className="text-2xl font-bold text-primary">{materials.length}</p>
+            <p className="text-xs text-muted-foreground">Material Types</p>
           </CardContent>
         </Card>
       </div>
@@ -151,10 +151,10 @@ function ResultsPanel({ output }: { output: PredictionOutput | null }) {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-2">
-            {materials.map(([name, qty]) => (
+            {materials.map(([name, { qty, unit }]) => (
               <div key={name} className="flex items-center justify-between p-3 rounded-lg bg-primary/5 border border-primary/10">
                 <span className="font-medium text-sm truncate mr-2">{name}</span>
-                <Badge className="text-sm font-bold px-3 py-1 bg-primary text-primary-foreground shrink-0">{qty} kg</Badge>
+                <Badge className="text-sm font-bold px-3 py-1 bg-primary text-primary-foreground shrink-0">{qty} {unit}</Badge>
               </div>
             ))}
           </div>
@@ -175,7 +175,7 @@ function ResultsPanel({ output }: { output: PredictionOutput | null }) {
                     <p className="text-xs text-muted-foreground">for {r.dish}</p>
                   </div>
                 </div>
-                <Badge variant="outline" className="text-sm font-bold px-2 py-0.5 shrink-0">{r.quantity} kg</Badge>
+                <Badge variant="outline" className="text-sm font-bold px-2 py-0.5 shrink-0">{r.quantity} {r.unit}</Badge>
               </div>
             ))}
           </div>
@@ -185,42 +185,6 @@ function ResultsPanel({ output }: { output: PredictionOutput | null }) {
   );
 }
 
-/* ─── Weekly Menu Table ─── */
-function WeeklyMenuTable() {
-  return (
-    <Card className="shadow-lg border-0 bg-card overflow-hidden">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-lg flex items-center gap-2"><CalendarDays className="h-5 w-5 text-primary" /> JNU Weekly Mess Menu (March–April 2026)</CardTitle>
-      </CardHeader>
-      <CardContent className="p-0">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-muted/50">
-                <th className="text-left p-3 font-semibold text-foreground whitespace-nowrap">Day</th>
-                <th className="text-left p-3 font-semibold text-foreground">🌅 Breakfast</th>
-                <th className="text-left p-3 font-semibold text-foreground">☀️ Lunch</th>
-                <th className="text-left p-3 font-semibold text-foreground">🍵 Eve. Snacks</th>
-                <th className="text-left p-3 font-semibold text-foreground">🌙 Dinner</th>
-              </tr>
-            </thead>
-            <tbody>
-              {WEEKLY_MENU.map((day, i) => (
-                <tr key={day.day} className={i % 2 === 0 ? 'bg-background' : 'bg-muted/20'}>
-                  <td className="p-3 font-semibold text-primary whitespace-nowrap align-top">{day.day}</td>
-                  <td className="p-3 text-muted-foreground align-top">{day.Breakfast.join(', ')}</td>
-                  <td className="p-3 text-muted-foreground align-top">{day.Lunch.join(', ')}</td>
-                  <td className="p-3 text-muted-foreground align-top">{day['Evening Snacks'].join(', ')}</td>
-                  <td className="p-3 text-muted-foreground align-top">{day.Dinner.join(', ')}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
 
 /* ─── Consumption Chart ─── */
 function ConsumptionChart() {
@@ -270,7 +234,7 @@ const Index = () => {
           <div className="lg:col-span-2"><PredictionForm onPredict={handlePredict} onReset={() => setOutput(null)} /></div>
           <div className="lg:col-span-3"><ResultsPanel output={output} /></div>
         </div>
-        <WeeklyMenuTable />
+        
         <ConsumptionChart />
       </main>
     </div>

@@ -251,17 +251,37 @@ export const WEEKLY_MENU: DayMenu[] = [
   },
 ];
 
+// Unit mapping for materials
+const MATERIAL_UNITS: Record<string, string> = {
+  'Milk': 'litres',
+  'Curd': 'litres',
+  'Oil (for frying)': 'litres',
+  'Cream / Butter': 'kg',
+  'Butter': 'kg',
+  'Ghee': 'kg',
+  'Eggs': 'pcs',
+  'Banana': 'pcs',
+  'Lemon': 'pcs',
+  'Bread (Slices)': 'pcs',
+  'Pao Bread': 'pcs',
+};
+
+export function getUnit(material: string): string {
+  return MATERIAL_UNITS[material] || 'kg';
+}
+
 export interface PredictionResult {
   material: string;
   quantity: number;
   dish: string;
+  unit: string;
 }
 
 export interface PredictionOutput {
   adjustedStudents: number;
   attendanceRate: number;
   results: PredictionResult[];
-  totalMaterials: Record<string, number>;
+  totalMaterials: Record<string, { qty: number; unit: string }>;
 }
 
 export function predict(
@@ -273,20 +293,25 @@ export function predict(
   const adjusted = Math.round(students * rate);
 
   const results: PredictionResult[] = [];
-  const totalMaterials: Record<string, number> = {};
+  const totalMaterials: Record<string, { qty: number; unit: string }> = {};
 
   for (const item of items) {
     const materials = DISH_MATERIALS[item];
     if (!materials) continue;
     for (const mat of materials) {
-      const qty = parseFloat((adjusted * mat.perPerson * mat.demandFactor).toFixed(2));
-      results.push({ material: mat.name, quantity: qty, dish: item });
-      totalMaterials[mat.name] = (totalMaterials[mat.name] || 0) + qty;
+      const unit = getUnit(mat.name);
+      let qty = adjusted * mat.perPerson * mat.demandFactor;
+      if (unit === 'pcs') qty = Math.ceil(qty);
+      else qty = parseFloat(qty.toFixed(2));
+      results.push({ material: mat.name, quantity: qty, dish: item, unit });
+      if (!totalMaterials[mat.name]) totalMaterials[mat.name] = { qty: 0, unit };
+      totalMaterials[mat.name].qty += qty;
     }
   }
 
   for (const k of Object.keys(totalMaterials)) {
-    totalMaterials[k] = parseFloat(totalMaterials[k].toFixed(2));
+    const u = totalMaterials[k].unit;
+    totalMaterials[k].qty = u === 'pcs' ? Math.ceil(totalMaterials[k].qty) : parseFloat(totalMaterials[k].qty.toFixed(2));
   }
 
   return { adjustedStudents: adjusted, attendanceRate: rate, results, totalMaterials };
