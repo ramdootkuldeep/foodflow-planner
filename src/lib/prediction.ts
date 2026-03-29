@@ -101,6 +101,21 @@ const ATTENDANCE: Record<MealType, number> = {
   Dinner: 1.00,
 };
 
+// Side/accompaniment dishes — served to ALL students (not split)
+// Everything else is a "main" dish — students split across them
+const SIDE_DISHES = new Set([
+  // Common sides & beverages
+  'Milk / Tea', 'Sambhar', 'Chapati', 'Rice', 'Jeera Rice',
+  'Salad', 'Raita', 'Lauki Raita', 'Cucumber Raita', 'Boondi Raita',
+  'Lehsun Ki Chutney', 'Bread & Butter', 'Cornflakes', 'Banana',
+  // Dals are sides in a thali
+  'Dal Palak', 'Dal Tarka', 'Panchratan Dal', 'Dal Fry', 'Kalli Dal', 'Dal Maharani',
+  // Desserts
+  'Kheer', 'Savaiyan', 'Fruit Custard', 'Moong Ka Halwa',
+  // Rasam
+  'Rasam',
+]);
+
 interface RawMaterial {
   name: string;
   perPerson: number;
@@ -291,21 +306,37 @@ export function predict(
   const rate = ATTENDANCE[meal];
   const adjusted = Math.round(students * rate);
 
+  // Separate main dishes from sides
+  const mainDishes = items.filter(i => !SIDE_DISHES.has(i));
+  const sideDishes = items.filter(i => SIDE_DISHES.has(i));
+  const mainCount = mainDishes.length || 1; // avoid divide by zero
+
   const results: PredictionResult[] = [];
   const totalMaterials: Record<string, { qty: number; unit: string }> = {};
 
-  for (const item of items) {
+  const addMaterial = (item: string, studentsForDish: number) => {
     const materials = DISH_MATERIALS[item];
-    if (!materials) continue;
+    if (!materials) return;
     for (const mat of materials) {
       const unit = getUnit(mat.name);
-      let qty = adjusted * mat.perPerson * mat.demandFactor;
+      let qty = studentsForDish * mat.perPerson * mat.demandFactor;
       if (unit === 'pcs') qty = Math.ceil(qty);
       else qty = parseFloat(qty.toFixed(2));
       results.push({ material: mat.name, quantity: qty, dish: item, unit });
       if (!totalMaterials[mat.name]) totalMaterials[mat.name] = { qty: 0, unit };
       totalMaterials[mat.name].qty += qty;
     }
+  };
+
+  // Main dishes: split students equally across them
+  const studentsPerMain = Math.round(adjusted / mainCount);
+  for (const item of mainDishes) {
+    addMaterial(item, studentsPerMain);
+  }
+
+  // Side dishes: serve all adjusted students
+  for (const item of sideDishes) {
+    addMaterial(item, adjusted);
   }
 
   for (const k of Object.keys(totalMaterials)) {
