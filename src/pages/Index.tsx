@@ -75,10 +75,13 @@ function PredictionForm({ onPredict, onReset, customDishes, removedDishes }: {
   };
 
   return (
-    <Card className="shadow-lg border-0 bg-card">
+    <Card className="shadow-xl border-0 bg-gradient-to-br from-card to-muted/30 overflow-hidden">
       <CardHeader className="pb-4">
         <CardTitle className="flex items-center gap-2 text-xl">
-          <Utensils className="h-5 w-5 text-primary" /> Meal Configuration
+          <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+            <Utensils className="h-4 w-4 text-primary" />
+          </div>
+          Meal Configuration
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-5">
