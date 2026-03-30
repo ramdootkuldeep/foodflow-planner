@@ -134,7 +134,7 @@ export const NON_VEG_EATER_RATIO = 0.70;
 
 // Preference-based uptake: not every student takes every side dish.
 // e.g., some prefer rice over roti, some skip dal, etc.
-const PREFERENCE_FACTOR: Record<string, number> = {
+export const PREFERENCE_FACTOR: Record<string, number> = {
   // Staples — students split between rice & roti
   'Chapati': 0.65,          // ~65% prefer roti
   'Rice': 0.55,             // ~55% take plain rice
