@@ -89,8 +89,31 @@ export const ALL_DISHES: DishInfo[] = [
   { name: 'Dal Batti Churma', meals: ['Dinner'] },
 ];
 
-export function getDishesForMeal(meal: MealType): string[] {
-  return ALL_DISHES.filter(d => d.meals.includes(meal)).map(d => d.name);
+export function getDishesForMeal(
+  meal: MealType,
+  customDishes: DishInfo[] = [],
+  removedDishes: string[] = [],
+): string[] {
+  const all = [...ALL_DISHES, ...customDishes];
+  return all
+    .filter(d => d.meals.includes(meal) && !removedDishes.includes(d.name))
+    .map(d => d.name);
+}
+
+// Register custom dish materials at runtime
+const CUSTOM_MATERIALS: Record<string, RawMaterial[]> = {};
+export function registerDishMaterials(dishName: string, mats: { name: string; perPerson: number; unit: string }[]) {
+  // Also register units
+  for (const m of mats) {
+    MATERIAL_UNITS[m.name] = m.unit;
+  }
+  CUSTOM_MATERIALS[dishName] = mats.map(m => ({ name: m.name, perPerson: m.perPerson, demandFactor: 1.0 }));
+}
+export function unregisterDishMaterials(dishName: string) {
+  delete CUSTOM_MATERIALS[dishName];
+}
+function getMaterials(dish: string): RawMaterial[] | undefined {
+  return DISH_MATERIALS[dish] || CUSTOM_MATERIALS[dish];
 }
 
 // Attendance adjustment
@@ -315,7 +338,7 @@ export function predict(
   const totalMaterials: Record<string, { qty: number; unit: string }> = {};
 
   const addMaterial = (item: string, studentsForDish: number) => {
-    const materials = DISH_MATERIALS[item];
+    const materials = getMaterials(item);
     if (!materials) return;
     for (const mat of materials) {
       const unit = getUnit(mat.name);
