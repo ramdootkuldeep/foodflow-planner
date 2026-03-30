@@ -338,7 +338,7 @@ export function predict(
   const totalMaterials: Record<string, { qty: number; unit: string }> = {};
 
   const addMaterial = (item: string, studentsForDish: number) => {
-    const materials = DISH_MATERIALS[item];
+    const materials = getMaterials(item);
     if (!materials) return;
     for (const mat of materials) {
       const unit = getUnit(mat.name);
