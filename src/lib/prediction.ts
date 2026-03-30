@@ -130,7 +130,7 @@ const ATTENDANCE: Record<MealType, number> = {
 const NON_VEG_DISHES = new Set([
   'Omelette', 'Boiled Egg', 'Egg Curry', 'Chicken Curry',
 ]);
-const NON_VEG_EATER_RATIO = 0.70;
+export const NON_VEG_EATER_RATIO = 0.70;
 
 // Preference-based uptake: not every student takes every side dish.
 // e.g., some prefer rice over roti, some skip dal, etc.
