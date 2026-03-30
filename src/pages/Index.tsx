@@ -212,10 +212,12 @@ function PredictionForm({ onPredict, onReset, customDishes, removedDishes }: {
 function ResultsPanel({ output }: { output: PredictionOutput | null }) {
   if (!output) {
     return (
-      <Card className="shadow-lg border-0 bg-card flex items-center justify-center min-h-[300px]">
-        <div className="text-center text-muted-foreground space-y-2 p-8">
-          <Package className="h-12 w-12 mx-auto opacity-40" />
-          <p className="text-lg font-medium">No prediction yet</p>
+      <Card className="shadow-xl border-0 bg-gradient-to-br from-card to-muted/30 flex items-center justify-center min-h-[300px]">
+        <div className="text-center text-muted-foreground space-y-3 p-8">
+          <div className="h-16 w-16 rounded-2xl bg-muted/60 flex items-center justify-center mx-auto">
+            <Package className="h-8 w-8 opacity-40" />
+          </div>
+          <p className="text-lg font-semibold text-foreground">No prediction yet</p>
           <p className="text-sm">Configure your meal and click "Predict" to see results</p>
         </div>
       </Card>
