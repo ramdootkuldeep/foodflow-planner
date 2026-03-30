@@ -370,10 +370,13 @@ export interface PredictionOutput {
 export function predict(
   students: number,
   meal: MealType,
-  items: string[]
+  items: string[],
+  preferenceOverrides?: Record<string, number>,
+  nonVegRatioOverride?: number,
 ): PredictionOutput {
   const rate = ATTENDANCE[meal];
   const adjusted = Math.round(students * rate);
+  const nvRatio = nonVegRatioOverride ?? NON_VEG_EATER_RATIO;
 
   // Separate main dishes from sides
   const mainDishes = items.filter(i => !SIDE_DISHES.has(i));
