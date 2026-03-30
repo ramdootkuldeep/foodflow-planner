@@ -406,7 +406,7 @@ export function predict(
     let dishStudents = studentsPerMain;
     // Non-veg items: only 70% of students eat them
     if (NON_VEG_DISHES.has(item)) {
-      dishStudents = Math.round(dishStudents * NON_VEG_EATER_RATIO);
+      dishStudents = Math.round(dishStudents * nvRatio);
     }
     addMaterial(item, dishStudents);
   }
