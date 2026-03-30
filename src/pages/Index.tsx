@@ -19,16 +19,18 @@ import {
 } from 'lucide-react';
 
 /* ─── Prediction Form ─── */
-function PredictionForm({ onPredict, onReset }: {
+function PredictionForm({ onPredict, onReset, customDishes, removedDishes }: {
   onPredict: (s: number, m: MealType, i: string[]) => void;
   onReset: () => void;
+  customDishes: DishInfo[];
+  removedDishes: string[];
 }) {
   const [students, setStudents] = useState('300');
   const [meal, setMeal] = useState<MealType>('Lunch');
   const [selected, setSelected] = useState<string[]>([]);
   const [selectedDay, setSelectedDay] = useState('');
   const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-  const availableDishes = getDishesForMeal(meal);
+  const availableDishes = getDishesForMeal(meal, customDishes, removedDishes);
 
   const toggle = (item: string) =>
     setSelected(p => (p.includes(item) ? p.filter(i => i !== item) : [...p, item]));
