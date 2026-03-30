@@ -8,17 +8,18 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import {
-  predict, getDishesForMeal, WEEKLY_MENU, SAMPLE_DATA,
+  predict, getDishesForMeal, WEEKLY_MENU,
   registerDishMaterials, unregisterDishMaterials,
   PREFERENCE_FACTOR, NON_VEG_EATER_RATIO, SIDE_DISHES,
+  computeLearnedAdjustments,
   type MealType, type PredictionOutput, type DishInfo,
 } from '@/lib/prediction';
 import ManageMenuDialog from '@/components/ManageMenuDialog';
+import PostMealFeedback from '@/components/PostMealFeedback';
 import {
   Leaf, Users, Utensils, Calculator, RotateCcw, CalendarDays,
-  Package, TrendingDown, Scale, BarChart3, SlidersHorizontal, ChevronDown, ChevronUp,
+  Package, TrendingDown, Scale, SlidersHorizontal, ChevronDown, ChevronUp,
 } from 'lucide-react';
 
 /* ─── Prediction Form ─── */
@@ -286,47 +287,58 @@ function ResultsPanel({ output }: { output: PredictionOutput | null }) {
 }
 
 
-/* ─── Consumption Chart ─── */
-function ConsumptionChart() {
-  return (
-    <Card className="shadow-lg border-0 bg-card">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-lg flex items-center gap-2"><BarChart3 className="h-5 w-5 text-primary" /> Weekly Consumption Trends (Sample Data)</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <ResponsiveContainer width="100%" height={280}>
-          <BarChart data={SAMPLE_DATA} barGap={2}>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(40, 15%, 88%)" />
-            <XAxis dataKey="day" tick={{ fontSize: 12 }} />
-            <YAxis tick={{ fontSize: 12 }} label={{ value: 'Students', angle: -90, position: 'insideLeft', style: { fontSize: 12 } }} />
-            <Tooltip contentStyle={{ borderRadius: '0.75rem', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }} />
-            <Legend />
-            <Bar dataKey="Breakfast" fill="hsl(36, 80%, 55%)" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="Lunch" fill="hsl(145, 45%, 32%)" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="Dinner" fill="hsl(210, 70%, 50%)" radius={[4, 4, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
-      </CardContent>
-    </Card>
-  );
-}
 
 /* ─── Main Page ─── */
 const Index = () => {
   const [output, setOutput] = useState<PredictionOutput | null>(null);
+  const [lastMeal, setLastMeal] = useState<MealType | null>(null);
+  const [lastStudents, setLastStudents] = useState<number | null>(null);
+  const [lastItems, setLastItems] = useState<string[]>([]);
   const [customDishes, setCustomDishes] = useState<DishInfo[]>([]);
   const [removedDishes, setRemovedDishes] = useState<string[]>([]);
-  const handlePredict = (students: number, meal: MealType, items: string[], prefOverrides?: Record<string, number>, nvOverride?: number) => setOutput(predict(students, meal, items, prefOverrides, nvOverride));
+
+  const handlePredict = (students: number, meal: MealType, items: string[], prefOverrides?: Record<string, number>, nvOverride?: number) => {
+    // Apply learned adjustments from feedback history
+    const learned = computeLearnedAdjustments();
+    const result = predict(students, meal, items, prefOverrides, nvOverride);
+
+    // Adjust predictions based on learned factors
+    if (Object.keys(learned).length > 0) {
+      for (const r of result.results) {
+        const adj = learned[r.material];
+        if (adj && adj.samples >= 2) {
+          r.quantity = r.unit === 'pcs'
+            ? Math.ceil(r.quantity * adj.factor)
+            : parseFloat((r.quantity * adj.factor).toFixed(2));
+        }
+      }
+      // Recalculate totals
+      const newTotals: Record<string, { qty: number; unit: string }> = {};
+      for (const r of result.results) {
+        if (!newTotals[r.material]) newTotals[r.material] = { qty: 0, unit: r.unit };
+        newTotals[r.material].qty += r.quantity;
+      }
+      for (const k of Object.keys(newTotals)) {
+        newTotals[k].qty = newTotals[k].unit === 'pcs'
+          ? Math.ceil(newTotals[k].qty)
+          : parseFloat(newTotals[k].qty.toFixed(2));
+      }
+      result.totalMaterials = newTotals;
+    }
+
+    setOutput(result);
+    setLastMeal(meal);
+    setLastStudents(students);
+    setLastItems(items);
+  };
 
   const handleAddDish = (dish: DishInfo, materials: { name: string; perPerson: number; unit: string }[]) => {
     setCustomDishes(p => [...p.filter(d => d.name !== dish.name), dish]);
     registerDishMaterials(dish.name, materials);
-    // If it was previously removed, restore it
     setRemovedDishes(p => p.filter(n => n !== dish.name));
   };
 
   const handleRemoveDish = (name: string) => {
-    // If it's a custom dish, just remove it entirely
     const isCustom = customDishes.some(d => d.name === name);
     if (isCustom) {
       setCustomDishes(p => p.filter(d => d.name !== name));
@@ -365,12 +377,17 @@ const Index = () => {
       <main className="container max-w-7xl mx-auto px-4 py-6 space-y-6">
         <div className="grid lg:grid-cols-5 gap-6">
           <div className="lg:col-span-2">
-            <PredictionForm onPredict={handlePredict} onReset={() => setOutput(null)} customDishes={customDishes} removedDishes={removedDishes} />
+            <PredictionForm onPredict={handlePredict} onReset={() => { setOutput(null); setLastMeal(null); setLastStudents(null); setLastItems([]); }} customDishes={customDishes} removedDishes={removedDishes} />
           </div>
           <div className="lg:col-span-3"><ResultsPanel output={output} /></div>
         </div>
         
-        <ConsumptionChart />
+        <PostMealFeedback
+          lastPrediction={output}
+          lastMeal={lastMeal}
+          lastStudents={lastStudents}
+          lastItems={lastItems}
+        />
       </main>
     </div>
   );
