@@ -413,11 +413,11 @@ export function predict(
 
   // Side dishes: apply preference-based uptake factor
   for (const item of sideDishes) {
-    const prefFactor = PREFERENCE_FACTOR[item] ?? 0.75; // default 75% uptake
+    const defaultPref = PREFERENCE_FACTOR[item] ?? 0.75;
+    const prefFactor = preferenceOverrides?.[item] ?? defaultPref;
     let dishStudents = Math.round(adjusted * prefFactor);
-    // Non-veg sides also get the non-veg reduction
     if (NON_VEG_DISHES.has(item)) {
-      dishStudents = Math.round(dishStudents * NON_VEG_EATER_RATIO);
+      dishStudents = Math.round(dishStudents * nvRatio);
     }
     addMaterial(item, dishStudents);
   }
