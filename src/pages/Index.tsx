@@ -6,16 +6,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Slider } from '@/components/ui/slider';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import {
   predict, getDishesForMeal, WEEKLY_MENU, SAMPLE_DATA,
   registerDishMaterials, unregisterDishMaterials,
+  PREFERENCE_FACTOR, NON_VEG_EATER_RATIO, SIDE_DISHES,
   type MealType, type PredictionOutput, type DishInfo,
 } from '@/lib/prediction';
 import ManageMenuDialog from '@/components/ManageMenuDialog';
 import {
   Leaf, Users, Utensils, Calculator, RotateCcw, CalendarDays,
-  Package, TrendingDown, Scale, BarChart3,
+  Package, TrendingDown, Scale, BarChart3, SlidersHorizontal, ChevronDown, ChevronUp,
 } from 'lucide-react';
 
 /* ─── Prediction Form ─── */
