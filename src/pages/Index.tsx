@@ -10,8 +10,10 @@ import { Badge } from '@/components/ui/badge';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import {
   predict, getDishesForMeal, WEEKLY_MENU, SAMPLE_DATA,
-  type MealType, type PredictionOutput,
+  registerDishMaterials, unregisterDishMaterials,
+  type MealType, type PredictionOutput, type DishInfo,
 } from '@/lib/prediction';
+import ManageMenuDialog from '@/components/ManageMenuDialog';
 import {
   Leaf, Users, Utensils, Calculator, RotateCcw, CalendarDays,
   Package, TrendingDown, Scale, BarChart3,
