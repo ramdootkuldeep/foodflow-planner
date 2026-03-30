@@ -430,13 +430,107 @@ export function predict(
   return { adjustedStudents: adjusted, attendanceRate: rate, results, totalMaterials };
 }
 
-// Sample historical data for charts
-export const SAMPLE_DATA = [
-  { day: 'Mon', Breakfast: 120, Lunch: 280, Dinner: 310 },
-  { day: 'Tue', Breakfast: 115, Lunch: 295, Dinner: 300 },
-  { day: 'Wed', Breakfast: 130, Lunch: 270, Dinner: 320 },
-  { day: 'Thu', Breakfast: 110, Lunch: 300, Dinner: 305 },
-  { day: 'Fri', Breakfast: 140, Lunch: 260, Dinner: 290 },
-  { day: 'Sat', Breakfast: 90, Lunch: 200, Dinner: 250 },
-  { day: 'Sun', Breakfast: 85, Lunch: 190, Dinner: 240 },
-];
+// ── Post-meal feedback & learning system ──
+
+export interface FeedbackEntry {
+  id: string;
+  date: string;
+  meal: MealType;
+  students: number;
+  items: {
+    dish: string;
+    predictedQty: Record<string, { qty: number; unit: string }>;
+    actualUsed: Record<string, number>;   // material → actual qty used
+    wasted: Record<string, number>;       // material → qty wasted
+  }[];
+}
+
+const FEEDBACK_STORAGE_KEY = 'mess-predictor-feedback';
+
+export function loadFeedbackHistory(): FeedbackEntry[] {
+  try {
+    const raw = localStorage.getItem(FEEDBACK_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+export function saveFeedback(entry: FeedbackEntry) {
+  const history = loadFeedbackHistory();
+  history.push(entry);
+  // Keep last 100 entries
+  if (history.length > 100) history.splice(0, history.length - 100);
+  localStorage.setItem(FEEDBACK_STORAGE_KEY, JSON.stringify(history));
+}
+
+export function clearFeedbackHistory() {
+  localStorage.removeItem(FEEDBACK_STORAGE_KEY);
+}
+
+/**
+ * Compute learned adjustment factors from feedback history.
+ * Returns a multiplier per material: actualUsed / predicted.
+ * Values < 1 mean we over-predicted (should reduce), > 1 means under-predicted.
+ */
+export function computeLearnedAdjustments(): Record<string, { factor: number; samples: number }> {
+  const history = loadFeedbackHistory();
+  if (history.length === 0) return {};
+
+  const agg: Record<string, { totalPredicted: number; totalActual: number; count: number }> = {};
+
+  for (const entry of history) {
+    for (const item of entry.items) {
+      for (const [material, pred] of Object.entries(item.predictedQty)) {
+        const actual = item.actualUsed[material] ?? 0;
+        if (pred.qty <= 0) continue;
+        if (!agg[material]) agg[material] = { totalPredicted: 0, totalActual: 0, count: 0 };
+        agg[material].totalPredicted += pred.qty;
+        agg[material].totalActual += actual;
+        agg[material].count += 1;
+      }
+    }
+  }
+
+  const result: Record<string, { factor: number; samples: number }> = {};
+  for (const [mat, data] of Object.entries(agg)) {
+    if (data.totalPredicted > 0 && data.count >= 1) {
+      // Blend: weighted average leaning towards the learned ratio
+      const ratio = data.totalActual / data.totalPredicted;
+      // Clamp between 0.5 and 1.5 to avoid wild swings
+      result[mat] = { factor: Math.max(0.5, Math.min(1.5, ratio)), samples: data.count };
+    }
+  }
+  return result;
+}
+
+export function getFeedbackStats(): { totalEntries: number; avgWastePercent: number; topWasted: { material: string; avgWaste: number; unit: string }[] } {
+  const history = loadFeedbackHistory();
+  if (history.length === 0) return { totalEntries: 0, avgWastePercent: 0, topWasted: [] };
+
+  let totalPredicted = 0;
+  let totalWasted = 0;
+  const wasteByMaterial: Record<string, { total: number; count: number; unit: string }> = {};
+
+  for (const entry of history) {
+    for (const item of entry.items) {
+      for (const [material, pred] of Object.entries(item.predictedQty)) {
+        const waste = item.wasted[material] ?? 0;
+        totalPredicted += pred.qty;
+        totalWasted += waste;
+        if (!wasteByMaterial[material]) wasteByMaterial[material] = { total: 0, count: 0, unit: pred.unit };
+        wasteByMaterial[material].total += waste;
+        wasteByMaterial[material].count += 1;
+      }
+    }
+  }
+
+  const topWasted = Object.entries(wasteByMaterial)
+    .map(([material, d]) => ({ material, avgWaste: parseFloat((d.total / d.count).toFixed(2)), unit: d.unit }))
+    .sort((a, b) => b.avgWaste - a.avgWaste)
+    .slice(0, 5);
+
+  return {
+    totalEntries: history.length,
+    avgWastePercent: totalPredicted > 0 ? parseFloat(((totalWasted / totalPredicted) * 100).toFixed(1)) : 0,
+    topWasted,
+  };
+}
