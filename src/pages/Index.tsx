@@ -271,22 +271,27 @@ function ResultsPanel({ output }: { output: PredictionOutput | null }) {
           </div>
         </CardContent>
       </Card>
-      <Card className="shadow-lg border-0 bg-card">
+      <Card className="shadow-xl border-0 bg-gradient-to-br from-card to-muted/30">
         <CardHeader className="pb-3">
-          <CardTitle className="text-lg flex items-center gap-2"><Package className="h-5 w-5 text-primary" /> Dish-wise Breakdown</CardTitle>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <div className="h-8 w-8 rounded-lg bg-accent/10 flex items-center justify-center">
+              <Package className="h-4 w-4 text-accent" />
+            </div>
+            Dish-wise Breakdown
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-2 max-h-[350px] overflow-y-auto pr-1">
             {output.results.map((r, i) => (
-              <div key={i} className="flex items-center justify-between p-2.5 rounded-lg bg-muted/50">
+              <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-muted/40 hover:bg-muted/60 transition-colors">
                 <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 rounded-full bg-primary shrink-0" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-gradient-to-br from-primary to-primary/60 shrink-0" />
                   <div>
                     <p className="font-semibold text-sm">{r.material}</p>
                     <p className="text-xs text-muted-foreground">for {r.dish}</p>
                   </div>
                 </div>
-                <Badge variant="outline" className="text-sm font-bold px-2 py-0.5 shrink-0">{r.quantity} {r.unit}</Badge>
+                <Badge variant="outline" className="text-sm font-bold px-2.5 py-1 shrink-0 border-primary/20">{r.quantity} {r.unit}</Badge>
               </div>
             ))}
           </div>
