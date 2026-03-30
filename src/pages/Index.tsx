@@ -316,7 +316,7 @@ const Index = () => {
   const [output, setOutput] = useState<PredictionOutput | null>(null);
   const [customDishes, setCustomDishes] = useState<DishInfo[]>([]);
   const [removedDishes, setRemovedDishes] = useState<string[]>([]);
-  const handlePredict = (students: number, meal: MealType, items: string[]) => setOutput(predict(students, meal, items));
+  const handlePredict = (students: number, meal: MealType, items: string[], prefOverrides?: Record<string, number>, nvOverride?: number) => setOutput(predict(students, meal, items, prefOverrides, nvOverride));
 
   const handleAddDish = (dish: DishInfo, materials: { name: string; perPerson: number; unit: string }[]) => {
     setCustomDishes(p => [...p.filter(d => d.name !== dish.name), dish]);
