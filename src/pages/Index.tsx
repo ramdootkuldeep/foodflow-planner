@@ -8,17 +8,18 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import {
-  predict, getDishesForMeal, WEEKLY_MENU, SAMPLE_DATA,
+  predict, getDishesForMeal, WEEKLY_MENU,
   registerDishMaterials, unregisterDishMaterials,
   PREFERENCE_FACTOR, NON_VEG_EATER_RATIO, SIDE_DISHES,
+  computeLearnedAdjustments,
   type MealType, type PredictionOutput, type DishInfo,
 } from '@/lib/prediction';
 import ManageMenuDialog from '@/components/ManageMenuDialog';
+import PostMealFeedback from '@/components/PostMealFeedback';
 import {
   Leaf, Users, Utensils, Calculator, RotateCcw, CalendarDays,
-  Package, TrendingDown, Scale, BarChart3, SlidersHorizontal, ChevronDown, ChevronUp,
+  Package, TrendingDown, Scale, SlidersHorizontal, ChevronDown, ChevronUp,
 } from 'lucide-react';
 
 /* ─── Prediction Form ─── */
