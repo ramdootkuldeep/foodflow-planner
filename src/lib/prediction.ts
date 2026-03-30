@@ -124,19 +124,65 @@ const ATTENDANCE: Record<MealType, number> = {
   Dinner: 1.00,
 };
 
-// Side/accompaniment dishes — served to ALL students (not split)
+// ── Real-world consumption pattern factors ──
+
+// Non-veg dishes: only ~70% students eat non-veg
+const NON_VEG_DISHES = new Set([
+  'Omelette', 'Boiled Egg', 'Egg Curry', 'Chicken Curry',
+]);
+const NON_VEG_EATER_RATIO = 0.70;
+
+// Preference-based uptake: not every student takes every side dish.
+// e.g., some prefer rice over roti, some skip dal, etc.
+const PREFERENCE_FACTOR: Record<string, number> = {
+  // Staples — students split between rice & roti
+  'Chapati': 0.65,          // ~65% prefer roti
+  'Rice': 0.55,             // ~55% take plain rice
+  'Jeera Rice': 0.50,       // slightly fewer take flavored rice
+  'Poori': 0.60,
+
+  // Dals — not everyone takes dal
+  'Dal Palak': 0.70,
+  'Dal Tarka': 0.75,
+  'Panchratan Dal': 0.70,
+  'Dal Fry': 0.75,
+  'Kalli Dal': 0.65,
+  'Dal Maharani': 0.70,
+
+  // Raita — optional side
+  'Raita': 0.50,
+  'Lauki Raita': 0.45,
+  'Cucumber Raita': 0.50,
+  'Boondi Raita': 0.50,
+
+  // Desserts — popular but not universal
+  'Kheer': 0.75,
+  'Savaiyan': 0.70,
+  'Fruit Custard': 0.80,
+  'Moong Ka Halwa': 0.70,
+
+  // Beverages & light items
+  'Milk / Tea': 0.80,
+  'Cornflakes': 0.30,       // very few take cornflakes
+  'Bread & Butter': 0.40,
+  'Banana': 0.50,
+
+  // Accompaniments
+  'Salad': 0.45,
+  'Lehsun Ki Chutney': 0.40,
+  'Sambhar': 0.80,
+  'Rasam': 0.60,
+};
+
+// Side/accompaniment dishes — served broadly (with preference factor)
 // Everything else is a "main" dish — students split across them
 const SIDE_DISHES = new Set([
-  // Common sides & beverages
   'Milk / Tea', 'Sambhar', 'Chapati', 'Rice', 'Jeera Rice',
   'Salad', 'Raita', 'Lauki Raita', 'Cucumber Raita', 'Boondi Raita',
   'Lehsun Ki Chutney', 'Bread & Butter', 'Cornflakes', 'Banana',
-  // Dals are sides in a thali
   'Dal Palak', 'Dal Tarka', 'Panchratan Dal', 'Dal Fry', 'Kalli Dal', 'Dal Maharani',
-  // Desserts
   'Kheer', 'Savaiyan', 'Fruit Custard', 'Moong Ka Halwa',
-  // Rasam
-  'Rasam',
+  'Rasam', 'Poori',
 ]);
 
 interface RawMaterial {
@@ -351,15 +397,26 @@ export function predict(
     }
   };
 
-  // Main dishes: split students equally across them
+  // Main dishes: split students equally, with non-veg reduction
   const studentsPerMain = Math.round(adjusted / mainCount);
   for (const item of mainDishes) {
-    addMaterial(item, studentsPerMain);
+    let dishStudents = studentsPerMain;
+    // Non-veg items: only 70% of students eat them
+    if (NON_VEG_DISHES.has(item)) {
+      dishStudents = Math.round(dishStudents * NON_VEG_EATER_RATIO);
+    }
+    addMaterial(item, dishStudents);
   }
 
-  // Side dishes: serve all adjusted students
+  // Side dishes: apply preference-based uptake factor
   for (const item of sideDishes) {
-    addMaterial(item, adjusted);
+    const prefFactor = PREFERENCE_FACTOR[item] ?? 0.75; // default 75% uptake
+    let dishStudents = Math.round(adjusted * prefFactor);
+    // Non-veg sides also get the non-veg reduction
+    if (NON_VEG_DISHES.has(item)) {
+      dishStudents = Math.round(dishStudents * NON_VEG_EATER_RATIO);
+    }
+    addMaterial(item, dishStudents);
   }
 
   for (const k of Object.keys(totalMaterials)) {
