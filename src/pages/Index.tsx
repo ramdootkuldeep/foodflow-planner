@@ -75,10 +75,13 @@ function PredictionForm({ onPredict, onReset, customDishes, removedDishes }: {
   };
 
   return (
-    <Card className="shadow-lg border-0 bg-card">
+    <Card className="shadow-xl border-0 bg-gradient-to-br from-card to-muted/30 overflow-hidden">
       <CardHeader className="pb-4">
         <CardTitle className="flex items-center gap-2 text-xl">
-          <Utensils className="h-5 w-5 text-primary" /> Meal Configuration
+          <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+            <Utensils className="h-4 w-4 text-primary" />
+          </div>
+          Meal Configuration
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-5">
@@ -209,10 +212,12 @@ function PredictionForm({ onPredict, onReset, customDishes, removedDishes }: {
 function ResultsPanel({ output }: { output: PredictionOutput | null }) {
   if (!output) {
     return (
-      <Card className="shadow-lg border-0 bg-card flex items-center justify-center min-h-[300px]">
-        <div className="text-center text-muted-foreground space-y-2 p-8">
-          <Package className="h-12 w-12 mx-auto opacity-40" />
-          <p className="text-lg font-medium">No prediction yet</p>
+      <Card className="shadow-xl border-0 bg-gradient-to-br from-card to-muted/30 flex items-center justify-center min-h-[300px]">
+        <div className="text-center text-muted-foreground space-y-3 p-8">
+          <div className="h-16 w-16 rounded-2xl bg-muted/60 flex items-center justify-center mx-auto">
+            <Package className="h-8 w-8 opacity-40" />
+          </div>
+          <p className="text-lg font-semibold text-foreground">No prediction yet</p>
           <p className="text-sm">Configure your meal and click "Predict" to see results</p>
         </div>
       </Card>
@@ -224,59 +229,72 @@ function ResultsPanel({ output }: { output: PredictionOutput | null }) {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-3 gap-3">
-        <Card className="border-0 shadow-md bg-primary/10">
-          <CardContent className="p-4 text-center">
+        <Card className="border-0 shadow-lg bg-gradient-to-br from-primary/15 to-primary/5 overflow-hidden">
+          <CardContent className="p-4 text-center relative">
+            <div className="absolute top-0 right-0 w-12 h-12 bg-primary/10 rounded-bl-3xl" />
             <Users className="h-5 w-5 mx-auto text-primary mb-1" />
             <p className="text-2xl font-bold text-primary">{output.adjustedStudents}</p>
-            <p className="text-xs text-muted-foreground">Adjusted Students</p>
+            <p className="text-xs text-muted-foreground font-medium">Adjusted Students</p>
           </CardContent>
         </Card>
-        <Card className="border-0 shadow-md bg-accent/10">
-          <CardContent className="p-4 text-center">
-            <TrendingDown className="h-5 w-5 mx-auto mb-1" style={{ color: 'hsl(36, 80%, 45%)' }} />
-            <p className="text-2xl font-bold" style={{ color: 'hsl(36, 80%, 45%)' }}>{(output.attendanceRate * 100).toFixed(0)}%</p>
-            <p className="text-xs text-muted-foreground">Attendance Rate</p>
+        <Card className="border-0 shadow-lg bg-gradient-to-br from-accent/15 to-accent/5 overflow-hidden">
+          <CardContent className="p-4 text-center relative">
+            <div className="absolute top-0 right-0 w-12 h-12 bg-accent/10 rounded-bl-3xl" />
+            <TrendingDown className="h-5 w-5 mx-auto text-accent mb-1" />
+            <p className="text-2xl font-bold text-accent">{(output.attendanceRate * 100).toFixed(0)}%</p>
+            <p className="text-xs text-muted-foreground font-medium">Attendance Rate</p>
           </CardContent>
         </Card>
-        <Card className="border-0 shadow-md bg-primary/5">
-          <CardContent className="p-4 text-center">
+        <Card className="border-0 shadow-lg bg-gradient-to-br from-primary/10 to-primary/5 overflow-hidden">
+          <CardContent className="p-4 text-center relative">
+            <div className="absolute top-0 right-0 w-12 h-12 bg-primary/10 rounded-bl-3xl" />
             <Scale className="h-5 w-5 mx-auto text-primary mb-1" />
             <p className="text-2xl font-bold text-primary">{materials.length}</p>
-            <p className="text-xs text-muted-foreground">Material Types</p>
+            <p className="text-xs text-muted-foreground font-medium">Material Types</p>
           </CardContent>
         </Card>
       </div>
-      <Card className="shadow-lg border-0 bg-card">
+      <Card className="shadow-xl border-0 bg-gradient-to-br from-card to-muted/30">
         <CardHeader className="pb-3">
-          <CardTitle className="text-lg flex items-center gap-2"><Scale className="h-5 w-5 text-primary" /> Total Raw Materials Required</CardTitle>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Scale className="h-4 w-4 text-primary" />
+            </div>
+            Total Raw Materials Required
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-2">
             {materials.map(([name, { qty, unit }]) => (
-              <div key={name} className="flex items-center justify-between p-3 rounded-lg bg-primary/5 border border-primary/10">
+              <div key={name} className="flex items-center justify-between p-3 rounded-xl bg-primary/5 border border-primary/10 hover:bg-primary/10 transition-colors">
                 <span className="font-medium text-sm truncate mr-2">{name}</span>
-                <Badge className="text-sm font-bold px-3 py-1 bg-primary text-primary-foreground shrink-0">{qty} {unit}</Badge>
+                <Badge className="text-sm font-bold px-3 py-1 bg-primary text-primary-foreground shrink-0 shadow-sm">{qty} {unit}</Badge>
               </div>
             ))}
           </div>
         </CardContent>
       </Card>
-      <Card className="shadow-lg border-0 bg-card">
+      <Card className="shadow-xl border-0 bg-gradient-to-br from-card to-muted/30">
         <CardHeader className="pb-3">
-          <CardTitle className="text-lg flex items-center gap-2"><Package className="h-5 w-5 text-primary" /> Dish-wise Breakdown</CardTitle>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <div className="h-8 w-8 rounded-lg bg-accent/10 flex items-center justify-center">
+              <Package className="h-4 w-4 text-accent" />
+            </div>
+            Dish-wise Breakdown
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-2 max-h-[350px] overflow-y-auto pr-1">
             {output.results.map((r, i) => (
-              <div key={i} className="flex items-center justify-between p-2.5 rounded-lg bg-muted/50">
+              <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-muted/40 hover:bg-muted/60 transition-colors">
                 <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 rounded-full bg-primary shrink-0" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-gradient-to-br from-primary to-primary/60 shrink-0" />
                   <div>
                     <p className="font-semibold text-sm">{r.material}</p>
                     <p className="text-xs text-muted-foreground">for {r.dish}</p>
                   </div>
                 </div>
-                <Badge variant="outline" className="text-sm font-bold px-2 py-0.5 shrink-0">{r.quantity} {r.unit}</Badge>
+                <Badge variant="outline" className="text-sm font-bold px-2.5 py-1 shrink-0 border-primary/20">{r.quantity} {r.unit}</Badge>
               </div>
             ))}
           </div>
@@ -298,14 +316,13 @@ const Index = () => {
   const [removedDishes, setRemovedDishes] = useState<string[]>([]);
 
   const handlePredict = (students: number, meal: MealType, items: string[], prefOverrides?: Record<string, number>, nvOverride?: number) => {
-    // Apply learned adjustments from feedback history
     const learned = computeLearnedAdjustments();
     const result = predict(students, meal, items, prefOverrides, nvOverride);
 
-    // Adjust predictions based on learned factors
+    // Apply dish-level learned adjustments to all raw materials of that dish
     if (Object.keys(learned).length > 0) {
       for (const r of result.results) {
-        const adj = learned[r.material];
+        const adj = learned[r.dish];
         if (adj && adj.samples >= 2) {
           r.quantity = r.unit === 'pcs'
             ? Math.ceil(r.quantity * adj.factor)
@@ -354,10 +371,10 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-10">
+      <header className="border-b border-border bg-gradient-to-r from-card via-card to-primary/5 backdrop-blur-sm sticky top-0 z-10 shadow-sm">
         <div className="container max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center">
+            <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-lg shadow-primary/20">
               <Leaf className="h-5 w-5 text-primary-foreground" />
             </div>
             <div>

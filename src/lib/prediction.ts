@@ -431,21 +431,29 @@ export function predict(
 }
 
 // ── Post-meal feedback & learning system ──
+// Feedback is now dish-based (cooked food), not raw-material-based.
+
+export interface DishFeedbackItem {
+  dish: string;
+  /** How much cooked food was actually consumed (kg or litres) */
+  actualConsumed: number;
+  /** How much cooked food was wasted/leftover (kg or litres) */
+  wasted: number;
+  /** Unit for the cooked dish */
+  unit: string;
+  /** Predicted serving quantity for reference */
+  predictedServing: number;
+}
 
 export interface FeedbackEntry {
   id: string;
   date: string;
   meal: MealType;
   students: number;
-  items: {
-    dish: string;
-    predictedQty: Record<string, { qty: number; unit: string }>;
-    actualUsed: Record<string, number>;   // material → actual qty used
-    wasted: Record<string, number>;       // material → qty wasted
-  }[];
+  dishes: DishFeedbackItem[];
 }
 
-const FEEDBACK_STORAGE_KEY = 'mess-predictor-feedback';
+const FEEDBACK_STORAGE_KEY = 'mess-predictor-feedback-v2';
 
 export function loadFeedbackHistory(): FeedbackEntry[] {
   try {
@@ -457,7 +465,6 @@ export function loadFeedbackHistory(): FeedbackEntry[] {
 export function saveFeedback(entry: FeedbackEntry) {
   const history = loadFeedbackHistory();
   history.push(entry);
-  // Keep last 100 entries
   if (history.length > 100) history.splice(0, history.length - 100);
   localStorage.setItem(FEEDBACK_STORAGE_KEY, JSON.stringify(history));
 }
@@ -466,10 +473,26 @@ export function clearFeedbackHistory() {
   localStorage.removeItem(FEEDBACK_STORAGE_KEY);
 }
 
+/** Estimate a per-person cooked serving weight for a dish (kg). */
+export function estimateDishServing(dish: string): { amount: number; unit: string } {
+  const mats = getMaterials(dish);
+  if (!mats) return { amount: 0.25, unit: 'kg' };
+  // Sum all raw material per-person amounts as proxy for cooked weight
+  let total = 0;
+  let hasLiquid = false;
+  for (const m of mats) {
+    const u = getUnit(m.name);
+    if (u === 'litres') hasLiquid = true;
+    if (u === 'pcs') total += m.perPerson * 0.05; // rough weight per piece
+    else total += m.perPerson;
+  }
+  return { amount: parseFloat(total.toFixed(3)), unit: hasLiquid ? 'litres' : 'kg' };
+}
+
 /**
- * Compute learned adjustment factors from feedback history.
- * Returns a multiplier per material: actualUsed / predicted.
- * Values < 1 mean we over-predicted (should reduce), > 1 means under-predicted.
+ * Compute learned adjustment factors from dish-level feedback.
+ * Maps dish consumption ratio back to all raw materials of that dish.
+ * Returns a multiplier per dish: actualConsumed / predictedServing.
  */
 export function computeLearnedAdjustments(): Record<string, { factor: number; samples: number }> {
   const history = loadFeedbackHistory();
@@ -478,59 +501,56 @@ export function computeLearnedAdjustments(): Record<string, { factor: number; sa
   const agg: Record<string, { totalPredicted: number; totalActual: number; count: number }> = {};
 
   for (const entry of history) {
-    for (const item of entry.items) {
-      for (const [material, pred] of Object.entries(item.predictedQty)) {
-        const actual = item.actualUsed[material] ?? 0;
-        if (pred.qty <= 0) continue;
-        if (!agg[material]) agg[material] = { totalPredicted: 0, totalActual: 0, count: 0 };
-        agg[material].totalPredicted += pred.qty;
-        agg[material].totalActual += actual;
-        agg[material].count += 1;
-      }
+    for (const dish of entry.dishes) {
+      if (dish.predictedServing <= 0) continue;
+      if (!agg[dish.dish]) agg[dish.dish] = { totalPredicted: 0, totalActual: 0, count: 0 };
+      agg[dish.dish].totalPredicted += dish.predictedServing;
+      agg[dish.dish].totalActual += dish.actualConsumed;
+      agg[dish.dish].count += 1;
     }
   }
 
   const result: Record<string, { factor: number; samples: number }> = {};
-  for (const [mat, data] of Object.entries(agg)) {
+  for (const [dish, data] of Object.entries(agg)) {
     if (data.totalPredicted > 0 && data.count >= 1) {
-      // Blend: weighted average leaning towards the learned ratio
       const ratio = data.totalActual / data.totalPredicted;
-      // Clamp between 0.5 and 1.5 to avoid wild swings
-      result[mat] = { factor: Math.max(0.5, Math.min(1.5, ratio)), samples: data.count };
+      result[dish] = { factor: Math.max(0.5, Math.min(1.5, ratio)), samples: data.count };
     }
   }
   return result;
 }
 
-export function getFeedbackStats(): { totalEntries: number; avgWastePercent: number; topWasted: { material: string; avgWaste: number; unit: string }[] } {
+export function getFeedbackStats(): {
+  totalEntries: number;
+  avgWastePercent: number;
+  topWasted: { dish: string; avgWaste: number; unit: string }[];
+} {
   const history = loadFeedbackHistory();
   if (history.length === 0) return { totalEntries: 0, avgWastePercent: 0, topWasted: [] };
 
-  let totalPredicted = 0;
+  let totalCooked = 0;
   let totalWasted = 0;
-  const wasteByMaterial: Record<string, { total: number; count: number; unit: string }> = {};
+  const wasteByDish: Record<string, { total: number; count: number; unit: string }> = {};
 
   for (const entry of history) {
-    for (const item of entry.items) {
-      for (const [material, pred] of Object.entries(item.predictedQty)) {
-        const waste = item.wasted[material] ?? 0;
-        totalPredicted += pred.qty;
-        totalWasted += waste;
-        if (!wasteByMaterial[material]) wasteByMaterial[material] = { total: 0, count: 0, unit: pred.unit };
-        wasteByMaterial[material].total += waste;
-        wasteByMaterial[material].count += 1;
-      }
+    for (const dish of entry.dishes) {
+      const cooked = dish.actualConsumed + dish.wasted;
+      totalCooked += cooked;
+      totalWasted += dish.wasted;
+      if (!wasteByDish[dish.dish]) wasteByDish[dish.dish] = { total: 0, count: 0, unit: dish.unit };
+      wasteByDish[dish.dish].total += dish.wasted;
+      wasteByDish[dish.dish].count += 1;
     }
   }
 
-  const topWasted = Object.entries(wasteByMaterial)
-    .map(([material, d]) => ({ material, avgWaste: parseFloat((d.total / d.count).toFixed(2)), unit: d.unit }))
+  const topWasted = Object.entries(wasteByDish)
+    .map(([dish, d]) => ({ dish, avgWaste: parseFloat((d.total / d.count).toFixed(2)), unit: d.unit }))
     .sort((a, b) => b.avgWaste - a.avgWaste)
     .slice(0, 5);
 
   return {
     totalEntries: history.length,
-    avgWastePercent: totalPredicted > 0 ? parseFloat(((totalWasted / totalPredicted) * 100).toFixed(1)) : 0,
+    avgWastePercent: totalCooked > 0 ? parseFloat(((totalWasted / totalCooked) * 100).toFixed(1)) : 0,
     topWasted,
   };
 }
