@@ -397,15 +397,26 @@ export function predict(
     }
   };
 
-  // Main dishes: split students equally across them
+  // Main dishes: split students equally, with non-veg reduction
   const studentsPerMain = Math.round(adjusted / mainCount);
   for (const item of mainDishes) {
-    addMaterial(item, studentsPerMain);
+    let dishStudents = studentsPerMain;
+    // Non-veg items: only 70% of students eat them
+    if (NON_VEG_DISHES.has(item)) {
+      dishStudents = Math.round(dishStudents * NON_VEG_EATER_RATIO);
+    }
+    addMaterial(item, dishStudents);
   }
 
-  // Side dishes: serve all adjusted students
+  // Side dishes: apply preference-based uptake factor
   for (const item of sideDishes) {
-    addMaterial(item, adjusted);
+    const prefFactor = PREFERENCE_FACTOR[item] ?? 0.75; // default 75% uptake
+    let dishStudents = Math.round(adjusted * prefFactor);
+    // Non-veg sides also get the non-veg reduction
+    if (NON_VEG_DISHES.has(item)) {
+      dishStudents = Math.round(dishStudents * NON_VEG_EATER_RATIO);
+    }
+    addMaterial(item, dishStudents);
   }
 
   for (const k of Object.keys(totalMaterials)) {
