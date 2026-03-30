@@ -176,7 +176,7 @@ export const PREFERENCE_FACTOR: Record<string, number> = {
 
 // Side/accompaniment dishes — served broadly (with preference factor)
 // Everything else is a "main" dish — students split across them
-const SIDE_DISHES = new Set([
+export const SIDE_DISHES = new Set([
   'Milk / Tea', 'Sambhar', 'Chapati', 'Rice', 'Jeera Rice',
   'Salad', 'Raita', 'Lauki Raita', 'Cucumber Raita', 'Boondi Raita',
   'Lehsun Ki Chutney', 'Bread & Butter', 'Cornflakes', 'Banana',
