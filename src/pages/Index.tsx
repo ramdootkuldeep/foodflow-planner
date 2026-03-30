@@ -291,19 +291,54 @@ function ResultsPanel({ output }: { output: PredictionOutput | null }) {
 /* ─── Main Page ─── */
 const Index = () => {
   const [output, setOutput] = useState<PredictionOutput | null>(null);
+  const [lastMeal, setLastMeal] = useState<MealType | null>(null);
+  const [lastStudents, setLastStudents] = useState<number | null>(null);
+  const [lastItems, setLastItems] = useState<string[]>([]);
   const [customDishes, setCustomDishes] = useState<DishInfo[]>([]);
   const [removedDishes, setRemovedDishes] = useState<string[]>([]);
-  const handlePredict = (students: number, meal: MealType, items: string[], prefOverrides?: Record<string, number>, nvOverride?: number) => setOutput(predict(students, meal, items, prefOverrides, nvOverride));
+
+  const handlePredict = (students: number, meal: MealType, items: string[], prefOverrides?: Record<string, number>, nvOverride?: number) => {
+    // Apply learned adjustments from feedback history
+    const learned = computeLearnedAdjustments();
+    const result = predict(students, meal, items, prefOverrides, nvOverride);
+
+    // Adjust predictions based on learned factors
+    if (Object.keys(learned).length > 0) {
+      for (const r of result.results) {
+        const adj = learned[r.material];
+        if (adj && adj.samples >= 2) {
+          r.quantity = r.unit === 'pcs'
+            ? Math.ceil(r.quantity * adj.factor)
+            : parseFloat((r.quantity * adj.factor).toFixed(2));
+        }
+      }
+      // Recalculate totals
+      const newTotals: Record<string, { qty: number; unit: string }> = {};
+      for (const r of result.results) {
+        if (!newTotals[r.material]) newTotals[r.material] = { qty: 0, unit: r.unit };
+        newTotals[r.material].qty += r.quantity;
+      }
+      for (const k of Object.keys(newTotals)) {
+        newTotals[k].qty = newTotals[k].unit === 'pcs'
+          ? Math.ceil(newTotals[k].qty)
+          : parseFloat(newTotals[k].qty.toFixed(2));
+      }
+      result.totalMaterials = newTotals;
+    }
+
+    setOutput(result);
+    setLastMeal(meal);
+    setLastStudents(students);
+    setLastItems(items);
+  };
 
   const handleAddDish = (dish: DishInfo, materials: { name: string; perPerson: number; unit: string }[]) => {
     setCustomDishes(p => [...p.filter(d => d.name !== dish.name), dish]);
     registerDishMaterials(dish.name, materials);
-    // If it was previously removed, restore it
     setRemovedDishes(p => p.filter(n => n !== dish.name));
   };
 
   const handleRemoveDish = (name: string) => {
-    // If it's a custom dish, just remove it entirely
     const isCustom = customDishes.some(d => d.name === name);
     if (isCustom) {
       setCustomDishes(p => p.filter(d => d.name !== name));
@@ -342,12 +377,17 @@ const Index = () => {
       <main className="container max-w-7xl mx-auto px-4 py-6 space-y-6">
         <div className="grid lg:grid-cols-5 gap-6">
           <div className="lg:col-span-2">
-            <PredictionForm onPredict={handlePredict} onReset={() => setOutput(null)} customDishes={customDishes} removedDishes={removedDishes} />
+            <PredictionForm onPredict={handlePredict} onReset={() => { setOutput(null); setLastMeal(null); setLastStudents(null); setLastItems([]); }} customDishes={customDishes} removedDishes={removedDishes} />
           </div>
           <div className="lg:col-span-3"><ResultsPanel output={output} /></div>
         </div>
         
-        <ConsumptionChart />
+        <PostMealFeedback
+          lastPrediction={output}
+          lastMeal={lastMeal}
+          lastStudents={lastStudents}
+          lastItems={lastItems}
+        />
       </main>
     </div>
   );
