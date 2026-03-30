@@ -298,14 +298,13 @@ const Index = () => {
   const [removedDishes, setRemovedDishes] = useState<string[]>([]);
 
   const handlePredict = (students: number, meal: MealType, items: string[], prefOverrides?: Record<string, number>, nvOverride?: number) => {
-    // Apply learned adjustments from feedback history
     const learned = computeLearnedAdjustments();
     const result = predict(students, meal, items, prefOverrides, nvOverride);
 
-    // Adjust predictions based on learned factors
+    // Apply dish-level learned adjustments to all raw materials of that dish
     if (Object.keys(learned).length > 0) {
       for (const r of result.results) {
-        const adj = learned[r.material];
+        const adj = learned[r.dish];
         if (adj && adj.samples >= 2) {
           r.quantity = r.unit === 'pcs'
             ? Math.ceil(r.quantity * adj.factor)
