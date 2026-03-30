@@ -229,25 +229,28 @@ function ResultsPanel({ output }: { output: PredictionOutput | null }) {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-3 gap-3">
-        <Card className="border-0 shadow-md bg-primary/10">
-          <CardContent className="p-4 text-center">
+        <Card className="border-0 shadow-lg bg-gradient-to-br from-primary/15 to-primary/5 overflow-hidden">
+          <CardContent className="p-4 text-center relative">
+            <div className="absolute top-0 right-0 w-12 h-12 bg-primary/10 rounded-bl-3xl" />
             <Users className="h-5 w-5 mx-auto text-primary mb-1" />
             <p className="text-2xl font-bold text-primary">{output.adjustedStudents}</p>
-            <p className="text-xs text-muted-foreground">Adjusted Students</p>
+            <p className="text-xs text-muted-foreground font-medium">Adjusted Students</p>
           </CardContent>
         </Card>
-        <Card className="border-0 shadow-md bg-accent/10">
-          <CardContent className="p-4 text-center">
-            <TrendingDown className="h-5 w-5 mx-auto mb-1" style={{ color: 'hsl(36, 80%, 45%)' }} />
-            <p className="text-2xl font-bold" style={{ color: 'hsl(36, 80%, 45%)' }}>{(output.attendanceRate * 100).toFixed(0)}%</p>
-            <p className="text-xs text-muted-foreground">Attendance Rate</p>
+        <Card className="border-0 shadow-lg bg-gradient-to-br from-accent/15 to-accent/5 overflow-hidden">
+          <CardContent className="p-4 text-center relative">
+            <div className="absolute top-0 right-0 w-12 h-12 bg-accent/10 rounded-bl-3xl" />
+            <TrendingDown className="h-5 w-5 mx-auto text-accent mb-1" />
+            <p className="text-2xl font-bold text-accent">{(output.attendanceRate * 100).toFixed(0)}%</p>
+            <p className="text-xs text-muted-foreground font-medium">Attendance Rate</p>
           </CardContent>
         </Card>
-        <Card className="border-0 shadow-md bg-primary/5">
-          <CardContent className="p-4 text-center">
+        <Card className="border-0 shadow-lg bg-gradient-to-br from-primary/10 to-primary/5 overflow-hidden">
+          <CardContent className="p-4 text-center relative">
+            <div className="absolute top-0 right-0 w-12 h-12 bg-primary/10 rounded-bl-3xl" />
             <Scale className="h-5 w-5 mx-auto text-primary mb-1" />
             <p className="text-2xl font-bold text-primary">{materials.length}</p>
-            <p className="text-xs text-muted-foreground">Material Types</p>
+            <p className="text-xs text-muted-foreground font-medium">Material Types</p>
           </CardContent>
         </Card>
       </div>
