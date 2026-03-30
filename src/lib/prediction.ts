@@ -130,11 +130,11 @@ const ATTENDANCE: Record<MealType, number> = {
 const NON_VEG_DISHES = new Set([
   'Omelette', 'Boiled Egg', 'Egg Curry', 'Chicken Curry',
 ]);
-const NON_VEG_EATER_RATIO = 0.70;
+export const NON_VEG_EATER_RATIO = 0.70;
 
 // Preference-based uptake: not every student takes every side dish.
 // e.g., some prefer rice over roti, some skip dal, etc.
-const PREFERENCE_FACTOR: Record<string, number> = {
+export const PREFERENCE_FACTOR: Record<string, number> = {
   // Staples — students split between rice & roti
   'Chapati': 0.65,          // ~65% prefer roti
   'Rice': 0.55,             // ~55% take plain rice
@@ -176,7 +176,7 @@ const PREFERENCE_FACTOR: Record<string, number> = {
 
 // Side/accompaniment dishes — served broadly (with preference factor)
 // Everything else is a "main" dish — students split across them
-const SIDE_DISHES = new Set([
+export const SIDE_DISHES = new Set([
   'Milk / Tea', 'Sambhar', 'Chapati', 'Rice', 'Jeera Rice',
   'Salad', 'Raita', 'Lauki Raita', 'Cucumber Raita', 'Boondi Raita',
   'Lehsun Ki Chutney', 'Bread & Butter', 'Cornflakes', 'Banana',
@@ -370,10 +370,13 @@ export interface PredictionOutput {
 export function predict(
   students: number,
   meal: MealType,
-  items: string[]
+  items: string[],
+  preferenceOverrides?: Record<string, number>,
+  nonVegRatioOverride?: number,
 ): PredictionOutput {
   const rate = ATTENDANCE[meal];
   const adjusted = Math.round(students * rate);
+  const nvRatio = nonVegRatioOverride ?? NON_VEG_EATER_RATIO;
 
   // Separate main dishes from sides
   const mainDishes = items.filter(i => !SIDE_DISHES.has(i));
@@ -403,18 +406,18 @@ export function predict(
     let dishStudents = studentsPerMain;
     // Non-veg items: only 70% of students eat them
     if (NON_VEG_DISHES.has(item)) {
-      dishStudents = Math.round(dishStudents * NON_VEG_EATER_RATIO);
+      dishStudents = Math.round(dishStudents * nvRatio);
     }
     addMaterial(item, dishStudents);
   }
 
   // Side dishes: apply preference-based uptake factor
   for (const item of sideDishes) {
-    const prefFactor = PREFERENCE_FACTOR[item] ?? 0.75; // default 75% uptake
+    const defaultPref = PREFERENCE_FACTOR[item] ?? 0.75;
+    const prefFactor = preferenceOverrides?.[item] ?? defaultPref;
     let dishStudents = Math.round(adjusted * prefFactor);
-    // Non-veg sides also get the non-veg reduction
     if (NON_VEG_DISHES.has(item)) {
-      dishStudents = Math.round(dishStudents * NON_VEG_EATER_RATIO);
+      dishStudents = Math.round(dishStudents * nvRatio);
     }
     addMaterial(item, dishStudents);
   }
