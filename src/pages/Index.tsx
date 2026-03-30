@@ -251,16 +251,21 @@ function ResultsPanel({ output }: { output: PredictionOutput | null }) {
           </CardContent>
         </Card>
       </div>
-      <Card className="shadow-lg border-0 bg-card">
+      <Card className="shadow-xl border-0 bg-gradient-to-br from-card to-muted/30">
         <CardHeader className="pb-3">
-          <CardTitle className="text-lg flex items-center gap-2"><Scale className="h-5 w-5 text-primary" /> Total Raw Materials Required</CardTitle>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Scale className="h-4 w-4 text-primary" />
+            </div>
+            Total Raw Materials Required
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-2">
             {materials.map(([name, { qty, unit }]) => (
-              <div key={name} className="flex items-center justify-between p-3 rounded-lg bg-primary/5 border border-primary/10">
+              <div key={name} className="flex items-center justify-between p-3 rounded-xl bg-primary/5 border border-primary/10 hover:bg-primary/10 transition-colors">
                 <span className="font-medium text-sm truncate mr-2">{name}</span>
-                <Badge className="text-sm font-bold px-3 py-1 bg-primary text-primary-foreground shrink-0">{qty} {unit}</Badge>
+                <Badge className="text-sm font-bold px-3 py-1 bg-primary text-primary-foreground shrink-0 shadow-sm">{qty} {unit}</Badge>
               </div>
             ))}
           </div>
