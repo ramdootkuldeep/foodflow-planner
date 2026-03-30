@@ -23,7 +23,7 @@ import {
 
 /* ─── Prediction Form ─── */
 function PredictionForm({ onPredict, onReset, customDishes, removedDishes }: {
-  onPredict: (s: number, m: MealType, i: string[]) => void;
+  onPredict: (s: number, m: MealType, i: string[], prefOverrides?: Record<string, number>, nvOverride?: number) => void;
   onReset: () => void;
   customDishes: DishInfo[];
   removedDishes: string[];
@@ -32,6 +32,9 @@ function PredictionForm({ onPredict, onReset, customDishes, removedDishes }: {
   const [meal, setMeal] = useState<MealType>('Lunch');
   const [selected, setSelected] = useState<string[]>([]);
   const [selectedDay, setSelectedDay] = useState('');
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [prefOverrides, setPrefOverrides] = useState<Record<string, number>>({});
+  const [nvOverride, setNvOverride] = useState<number>(NON_VEG_EATER_RATIO * 100);
   const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   const availableDishes = getDishesForMeal(meal, customDishes, removedDishes);
 
@@ -47,7 +50,28 @@ function PredictionForm({ onPredict, onReset, customDishes, removedDishes }: {
     if (dm) setSelected((dm[meal] || []).filter(d => availableDishes.includes(d)));
   };
 
-  const handleReset = () => { setStudents('300'); setMeal('Lunch'); setSelected([]); setSelectedDay(''); onReset(); };
+  const handleReset = () => { setStudents('300'); setMeal('Lunch'); setSelected([]); setSelectedDay(''); setPrefOverrides({}); setNvOverride(NON_VEG_EATER_RATIO * 100); onReset(); };
+
+  // Get side dishes from current selection for the slider UI
+  const selectedSides = selected.filter(i => SIDE_DISHES.has(i));
+
+  const getEffectivePref = (dish: string) => {
+    if (dish in prefOverrides) return prefOverrides[dish];
+    return (PREFERENCE_FACTOR[dish] ?? 0.75) * 100;
+  };
+
+  const setPref = (dish: string, val: number) => {
+    setPrefOverrides(p => ({ ...p, [dish]: val }));
+  };
+
+  const buildOverrides = () => {
+    if (Object.keys(prefOverrides).length === 0) return undefined;
+    const o: Record<string, number> = {};
+    for (const [k, v] of Object.entries(prefOverrides)) {
+      o[k] = v / 100;
+    }
+    return o;
+  };
 
   return (
     <Card className="shadow-lg border-0 bg-card">
@@ -99,8 +123,77 @@ function PredictionForm({ onPredict, onReset, customDishes, removedDishes }: {
             ))}
           </div>
         </div>
+
+        {/* Optional Advanced Preferences */}
+        {selected.length > 0 && (
+          <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" className="w-full justify-between text-sm font-medium text-muted-foreground hover:text-foreground h-10 px-3">
+                <span className="flex items-center gap-2">
+                  <SlidersHorizontal className="h-4 w-4" />
+                  Advanced Preferences (Optional)
+                </span>
+                {advancedOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-4 pt-3">
+              <p className="text-xs text-muted-foreground">
+                Adjust uptake percentages based on your experience. Leave defaults for auto-prediction.
+              </p>
+
+              {/* Non-veg ratio */}
+              <div className="space-y-2 p-3 rounded-lg bg-muted/50 border border-border">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">🍗 Non-Veg Eaters</Label>
+                  <span className="text-sm font-bold text-primary">{nvOverride}%</span>
+                </div>
+                <Slider
+                  value={[nvOverride]}
+                  onValueChange={([v]) => setNvOverride(v)}
+                  min={10} max={100} step={5}
+                  className="w-full"
+                />
+                <p className="text-xs text-muted-foreground">% of students who eat non-veg items</p>
+              </div>
+
+              {/* Side dish preference sliders */}
+              {selectedSides.length > 0 && (
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">Side Dish Uptake</Label>
+                  <div className="max-h-[200px] overflow-y-auto space-y-3 pr-1">
+                    {selectedSides.map(dish => (
+                      <div key={dish} className="space-y-1 p-2.5 rounded-lg bg-muted/30 border border-border">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium truncate mr-2">{dish}</span>
+                          <span className="text-sm font-bold text-primary shrink-0">{Math.round(getEffectivePref(dish))}%</span>
+                        </div>
+                        <Slider
+                          value={[getEffectivePref(dish)]}
+                          onValueChange={([v]) => setPref(dish, v)}
+                          min={10} max={100} step={5}
+                          className="w-full"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <Button variant="outline" size="sm" className="w-full text-xs"
+                onClick={() => { setPrefOverrides({}); setNvOverride(NON_VEG_EATER_RATIO * 100); }}>
+                <RotateCcw className="h-3 w-3 mr-1" /> Reset to Defaults
+              </Button>
+            </CollapsibleContent>
+          </Collapsible>
+        )}
+
         <div className="flex gap-3 pt-2">
-          <Button onClick={() => { const n = parseInt(students); if (n > 0 && selected.length > 0) onPredict(n, meal, selected); }}
+          <Button onClick={() => {
+            const n = parseInt(students);
+            if (n > 0 && selected.length > 0) {
+              onPredict(n, meal, selected, buildOverrides(), nvOverride / 100);
+            }
+          }}
             className="flex-1 h-12 text-base font-semibold" disabled={!students || parseInt(students) <= 0 || selected.length === 0}>
             <Calculator className="h-4 w-4 mr-2" /> Predict Requirement
           </Button>
