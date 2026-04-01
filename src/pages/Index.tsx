@@ -318,7 +318,7 @@ const Index = () => {
   const [useLearned, setUseLearned] = useState(true);
 
   const handlePredict = (students: number, meal: MealType, items: string[], prefOverrides?: Record<string, number>, nvOverride?: number) => {
-    const learned = computeLearnedAdjustments();
+    const learned = useLearned ? computeLearnedAdjustments() : {};
     const result = predict(students, meal, items, prefOverrides, nvOverride);
 
     // Apply dish-level learned adjustments to all raw materials of that dish
