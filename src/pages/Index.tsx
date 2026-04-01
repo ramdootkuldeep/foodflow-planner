@@ -315,6 +315,7 @@ const Index = () => {
   const [lastItems, setLastItems] = useState<string[]>([]);
   const [customDishes, setCustomDishes] = useState<DishInfo[]>([]);
   const [removedDishes, setRemovedDishes] = useState<string[]>([]);
+  const [useLearned, setUseLearned] = useState(true);
 
   const handlePredict = (students: number, meal: MealType, items: string[], prefOverrides?: Record<string, number>, nvOverride?: number) => {
     const learned = computeLearnedAdjustments();
