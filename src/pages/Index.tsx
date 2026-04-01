@@ -19,8 +19,9 @@ import ManageMenuDialog from '@/components/ManageMenuDialog';
 import PostMealFeedback from '@/components/PostMealFeedback';
 import {
   Leaf, Users, Utensils, Calculator, RotateCcw, CalendarDays,
-  Package, TrendingDown, Scale, SlidersHorizontal, ChevronDown, ChevronUp,
+  Package, TrendingDown, Scale, SlidersHorizontal, ChevronDown, ChevronUp, BrainCircuit,
 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 
 /* ─── Prediction Form ─── */
 function PredictionForm({ onPredict, onReset, customDishes, removedDishes }: {
