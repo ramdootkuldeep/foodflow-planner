@@ -384,6 +384,12 @@ const Index = () => {
               <p className="text-xs text-muted-foreground">JNU Hostel Mess — Raw Material Prediction &amp; Food Waste Optimization</p>
             </div>
           </div>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/60 border border-border">
+              <BrainCircuit className="h-4 w-4 text-primary" />
+              <span className="text-xs font-medium text-muted-foreground hidden sm:inline">Smart Learning</span>
+              <Switch checked={useLearned} onCheckedChange={setUseLearned} />
+            </div>
           <ManageMenuDialog
             customDishes={customDishes}
             removedDishes={removedDishes}
