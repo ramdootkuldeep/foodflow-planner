@@ -19,8 +19,9 @@ import ManageMenuDialog from '@/components/ManageMenuDialog';
 import PostMealFeedback from '@/components/PostMealFeedback';
 import {
   Leaf, Users, Utensils, Calculator, RotateCcw, CalendarDays,
-  Package, TrendingDown, Scale, SlidersHorizontal, ChevronDown, ChevronUp,
+  Package, TrendingDown, Scale, SlidersHorizontal, ChevronDown, ChevronUp, BrainCircuit,
 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 
 /* ─── Prediction Form ─── */
 function PredictionForm({ onPredict, onReset, customDishes, removedDishes }: {
@@ -314,9 +315,10 @@ const Index = () => {
   const [lastItems, setLastItems] = useState<string[]>([]);
   const [customDishes, setCustomDishes] = useState<DishInfo[]>([]);
   const [removedDishes, setRemovedDishes] = useState<string[]>([]);
+  const [useLearned, setUseLearned] = useState(true);
 
   const handlePredict = (students: number, meal: MealType, items: string[], prefOverrides?: Record<string, number>, nvOverride?: number) => {
-    const learned = computeLearnedAdjustments();
+    const learned = useLearned ? computeLearnedAdjustments() : {};
     const result = predict(students, meal, items, prefOverrides, nvOverride);
 
     // Apply dish-level learned adjustments to all raw materials of that dish
@@ -382,6 +384,12 @@ const Index = () => {
               <p className="text-xs text-muted-foreground">JNU Hostel Mess — Raw Material Prediction &amp; Food Waste Optimization</p>
             </div>
           </div>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/60 border border-border">
+              <BrainCircuit className="h-4 w-4 text-primary" />
+              <span className="text-xs font-medium text-muted-foreground hidden sm:inline">Smart Learning</span>
+              <Switch checked={useLearned} onCheckedChange={setUseLearned} />
+            </div>
           <ManageMenuDialog
             customDishes={customDishes}
             removedDishes={removedDishes}
@@ -389,6 +397,7 @@ const Index = () => {
             onRemoveDish={handleRemoveDish}
             onRestoreDish={handleRestoreDish}
           />
+          </div>
         </div>
       </header>
       <main className="container max-w-7xl mx-auto px-4 py-6 space-y-6">
