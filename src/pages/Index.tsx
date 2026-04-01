@@ -325,7 +325,7 @@ const Index = () => {
     if (Object.keys(learned).length > 0) {
       for (const r of result.results) {
         const adj = learned[r.dish];
-        if (adj && adj.samples >= 2) {
+        if (adj && adj.samples >= 1) {
           r.quantity = r.unit === 'pcs'
             ? Math.ceil(r.quantity * adj.factor)
             : parseFloat((r.quantity * adj.factor).toFixed(2));
