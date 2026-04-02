@@ -5,10 +5,7 @@ import Dashboard from './Dashboard';
 import PredictPage from './Predict';
 import FeedbackPage from './Feedback';
 import MenuManagement from './MenuManagement';
-import {
-  registerDishMaterials, unregisterDishMaterials,
-  type MealType, type PredictionOutput, type DishInfo,
-} from '@/lib/prediction';
+import type { MealType, PredictionOutput, DishInfo } from '@/lib/prediction';
 
 const Index = () => {
   const [output, setOutput] = useState<PredictionOutput | null>(null);
@@ -28,7 +25,6 @@ const Index = () => {
 
   const handleAddDish = (dish: DishInfo, materials: { name: string; perPerson: number; unit: string }[]) => {
     setCustomDishes(p => [...p.filter(d => d.name !== dish.name), dish]);
-    registerDishMaterials(dish.name, materials);
     setRemovedDishes(p => p.filter(n => n !== dish.name));
   };
 
@@ -36,7 +32,6 @@ const Index = () => {
     const isCustom = customDishes.some(d => d.name === name);
     if (isCustom) {
       setCustomDishes(p => p.filter(d => d.name !== name));
-      unregisterDishMaterials(name);
     } else {
       setRemovedDishes(p => [...p, name]);
     }
