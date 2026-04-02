@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Calculator, ClipboardCheck, Settings2, BrainCircuit, TrendingDown, Utensils } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
-import { getFeedbackStats, loadFeedbackHistory } from '@/lib/prediction';
+import { apiGetFeedbackStats, apiGetFeedbackHistory } from '@/lib/api';
 import { useEffect, useState } from 'react';
 
 interface DashboardProps {
@@ -11,12 +11,12 @@ interface DashboardProps {
 }
 
 export default function Dashboard({ useLearned, onToggleLearned }: DashboardProps) {
-  const [stats, setStats] = useState(getFeedbackStats());
+  const [stats, setStats] = useState({ totalEntries: 0, avgWastePercent: 0, topWasted: [] as any[] });
   const [feedbackCount, setFeedbackCount] = useState(0);
 
   useEffect(() => {
-    setStats(getFeedbackStats());
-    setFeedbackCount(loadFeedbackHistory().length);
+    apiGetFeedbackStats().then(setStats).catch(() => {});
+    apiGetFeedbackHistory().then(entries => setFeedbackCount(entries.length)).catch(() => {});
   }, []);
 
   const features = [

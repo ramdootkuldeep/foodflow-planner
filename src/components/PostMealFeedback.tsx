@@ -4,14 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import {
-  saveFeedback, loadFeedbackHistory, clearFeedbackHistory,
-  getFeedbackStats, estimateDishServing,
-  type PredictionOutput, type MealType, type FeedbackEntry, type DishFeedbackItem,
-} from '@/lib/prediction';
+import { apiSaveFeedback, apiGetFeedbackStats, apiGetFeedbackHistory, apiClearFeedback, apiGetDishServing, type DishFeedbackItem } from '@/lib/api';
+import type { PredictionOutput, MealType } from '@/lib/prediction';
 import {
   ClipboardCheck, Trash2, TrendingDown, AlertTriangle,
-  CheckCircle2, History, UtensilsCrossed, Flame,
+  CheckCircle2, History, UtensilsCrossed, Flame, Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -26,18 +23,38 @@ export default function PostMealFeedback({ lastPrediction, lastMeal, lastStudent
   const [consumed, setConsumed] = useState<Record<string, string>>({});
   const [wasted, setWasted] = useState<Record<string, string>>({});
   const [historyCount, setHistoryCount] = useState(0);
-  const [stats, setStats] = useState(getFeedbackStats());
+  const [stats, setStats] = useState<{ totalEntries: number; avgWastePercent: number; topWasted: { dish: string; avgWaste: number; unit: string }[] }>({ totalEntries: 0, avgWastePercent: 0, topWasted: [] });
+  const [submitting, setSubmitting] = useState(false);
+  const [dishServings, setDishServings] = useState<{ dish: string; predictedTotal: number; unit: string }[]>([]);
 
   useEffect(() => {
-    setHistoryCount(loadFeedbackHistory().length);
-    setStats(getFeedbackStats());
+    apiGetFeedbackStats().then(setStats).catch(() => {});
+    apiGetFeedbackHistory().then(entries => setHistoryCount(entries.length)).catch(() => {});
   }, []);
 
-  const clearHandler = () => {
-    clearFeedbackHistory();
-    setHistoryCount(0);
-    setStats(getFeedbackStats());
-    toast.success('Feedback history cleared');
+  // Compute dish servings from prediction results
+  useEffect(() => {
+    if (!lastPrediction || !lastItems.length) return;
+    const servings = lastItems.map(dish => {
+      const dishResults = lastPrediction.results.filter(r => r.dish === dish);
+      const totalPredictedKg = dishResults.reduce((s, r) => {
+        if (r.unit === 'pcs') return s + r.quantity * 0.05;
+        return s + r.quantity;
+      }, 0);
+      return { dish, predictedTotal: parseFloat(totalPredictedKg.toFixed(1)), unit: 'kg' };
+    });
+    setDishServings(servings);
+  }, [lastPrediction, lastItems]);
+
+  const clearHandler = async () => {
+    try {
+      await apiClearFeedback();
+      setHistoryCount(0);
+      setStats({ totalEntries: 0, avgWastePercent: 0, topWasted: [] });
+      toast.success('Feedback history cleared');
+    } catch {
+      toast.error('Failed to clear feedback');
+    }
   };
 
   if (!lastPrediction || !lastMeal || !lastStudents) {
@@ -65,44 +82,33 @@ export default function PostMealFeedback({ lastPrediction, lastMeal, lastStudent
     );
   }
 
-  // Build dish list with estimated total cooked quantities
-  const dishServings = lastItems.map(dish => {
-    const serving = estimateDishServing(dish);
-    // Find total predicted quantity for this dish from prediction results
-    const dishResults = lastPrediction.results.filter(r => r.dish === dish);
-    const totalPredictedKg = dishResults.reduce((s, r) => {
-      if (r.unit === 'pcs') return s + r.quantity * 0.05;
-      return s + r.quantity;
-    }, 0);
-    return {
-      dish,
-      predictedTotal: parseFloat(totalPredictedKg.toFixed(1)),
-      unit: serving.unit,
-    };
-  });
+  const handleSubmit = async () => {
+    setSubmitting(true);
+    try {
+      const dishes: DishFeedbackItem[] = dishServings.map(({ dish, predictedTotal, unit }) => ({
+        dish,
+        actualConsumed: parseFloat(consumed[dish] || '0') || 0,
+        wasted: parseFloat(wasted[dish] || '0') || 0,
+        unit,
+        predictedServing: predictedTotal,
+      }));
 
-  const handleSubmit = () => {
-    const dishes: DishFeedbackItem[] = dishServings.map(({ dish, predictedTotal, unit }) => ({
-      dish,
-      actualConsumed: parseFloat(consumed[dish] || '0') || 0,
-      wasted: parseFloat(wasted[dish] || '0') || 0,
-      unit,
-      predictedServing: predictedTotal,
-    }));
+      await apiSaveFeedback(lastMeal, lastStudents, dishes);
+      setConsumed({});
+      setWasted({});
 
-    const entry: FeedbackEntry = {
-      id: crypto.randomUUID(),
-      date: new Date().toISOString(),
-      meal: lastMeal,
-      students: lastStudents,
-      dishes,
-    };
-    saveFeedback(entry);
-    setConsumed({});
-    setWasted({});
-    setHistoryCount(loadFeedbackHistory().length);
-    setStats(getFeedbackStats());
-    toast.success('Feedback recorded! Future predictions will improve based on this data.');
+      const [newStats, history] = await Promise.all([
+        apiGetFeedbackStats(),
+        apiGetFeedbackHistory(),
+      ]);
+      setStats(newStats);
+      setHistoryCount(history.length);
+      toast.success('Feedback recorded! Future predictions will improve based on this data.');
+    } catch {
+      toast.error('Failed to save feedback');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -141,9 +147,7 @@ export default function PostMealFeedback({ lastPrediction, lastMeal, lastStudent
                 <div>
                   <Label className="text-xs text-muted-foreground mb-1 block">Consumed ({unit})</Label>
                   <Input
-                    type="number"
-                    min={0}
-                    step={0.5}
+                    type="number" min={0} step={0.5}
                     placeholder={`${predictedTotal}`}
                     value={consumed[dish] || ''}
                     onChange={e => setConsumed(p => ({ ...p, [dish]: e.target.value }))}
@@ -153,9 +157,7 @@ export default function PostMealFeedback({ lastPrediction, lastMeal, lastStudent
                 <div>
                   <Label className="text-xs text-muted-foreground mb-1 block">Wasted ({unit})</Label>
                   <Input
-                    type="number"
-                    min={0}
-                    step={0.5}
+                    type="number" min={0} step={0.5}
                     placeholder="0"
                     value={wasted[dish] || ''}
                     onChange={e => setWasted(p => ({ ...p, [dish]: e.target.value }))}
@@ -167,8 +169,9 @@ export default function PostMealFeedback({ lastPrediction, lastMeal, lastStudent
           ))}
         </div>
 
-        <Button onClick={handleSubmit} className="w-full h-12 font-semibold text-base shadow-lg hover:shadow-xl transition-all">
-          <CheckCircle2 className="h-5 w-5 mr-2" /> Submit Feedback & Improve Model
+        <Button onClick={handleSubmit} disabled={submitting} className="w-full h-12 font-semibold text-base shadow-lg hover:shadow-xl transition-all">
+          {submitting ? <Loader2 className="h-5 w-5 mr-2 animate-spin" /> : <CheckCircle2 className="h-5 w-5 mr-2" />}
+          {submitting ? 'Submitting...' : 'Submit Feedback & Improve Model'}
         </Button>
 
         {historyCount > 0 && <FeedbackStatsView stats={stats} count={historyCount} onClear={clearHandler} />}
@@ -178,7 +181,7 @@ export default function PostMealFeedback({ lastPrediction, lastMeal, lastStudent
 }
 
 function FeedbackStatsView({ stats, count, onClear }: {
-  stats: ReturnType<typeof getFeedbackStats>;
+  stats: { totalEntries: number; avgWastePercent: number; topWasted: { dish: string; avgWaste: number; unit: string }[] };
   count: number;
   onClear: () => void;
 }) {
